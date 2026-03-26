@@ -1,98 +1,82 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { ScrollView, View, Text, StyleSheet } from 'react-native';
+import { useStore } from '@/store';
+import { WMS } from '@/constants/theme';
+import { Card, SectionLabel, StatCard, Badge, EmptyState } from '@/components/wms/ui';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+export default function DashboardScreen() {
+  const { state } = useStore();
+  const { items } = state;
 
-export default function HomeScreen() {
+  const total      = items.length;
+  const ok         = items.filter(i => i.status === 'ok').length;
+  const pendente   = items.filter(i => i.status === 'pendente').length;
+  const divergencia= items.filter(i => i.status === 'divergencia').length;
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+    <ScrollView style={s.container} contentContainerStyle={s.content}>
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+      {/* Header */}
+      <View style={s.header}>
+        <View style={s.dot} />
+        <Text style={s.headerTitle}>WMS Mini</Text>
+        <Text style={s.headerSub}>{total} iten{total !== 1 ? 's' : ''}</Text>
+      </View>
+
+      {/* Stats */}
+      <View style={{ flexDirection: 'row', gap: 10, marginBottom: 12 }}>
+        <StatCard label="total"      value={total} />
+        <StatCard label="ok"         value={ok}         color={WMS.teal} />
+        <StatCard label="pendente"   value={pendente}   color={WMS.amber} />
+        <StatCard label="divergência"value={divergencia}color={WMS.red} />
+      </View>
+
+      {/* Recent activity */}
+      <Card>
+        <SectionLabel>atividade recente</SectionLabel>
+        {items.length === 0
+          ? <EmptyState icon="📦" title="Nenhuma atividade" subtitle="Registre itens via QR Code ou OCR" />
+          : items.slice(0, 10).map(item => (
+              <View key={item.id} style={s.actRow}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+                  <Badge value={item.tipo}   type="tipo" />
+                  <Text style={s.actCodigo}>{item.codigo}</Text>
+                  {item.descricao ? <Text style={s.actDesc} numberOfLines={1}>{item.descricao}</Text> : null}
+                </View>
+                <Badge value={item.status} type="status" />
+              </View>
+            ))
+        }
+      </Card>
+
+      {/* Type split */}
+      <Card>
+        <SectionLabel>por tipo</SectionLabel>
+        <View style={{ flexDirection: 'row', gap: 12 }}>
+          <View style={{ flex: 1 }}>
+            <Text style={[s.typeVal, { color: WMS.purple }]}>{items.filter(i => i.tipo === 'qrcode').length}</Text>
+            <Text style={s.typeLabel}>QR Code</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[s.typeVal, { color: WMS.blue }]}>{items.filter(i => i.tipo === 'ocr').length}</Text>
+            <Text style={s.typeLabel}>OCR</Text>
+          </View>
+        </View>
+      </Card>
+
+    </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
+const s = StyleSheet.create({
+  container: { flex: 1, backgroundColor: WMS.bg },
+  content:   { padding: 16, paddingBottom: 40 },
+  header:    { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 20 },
+  dot:       { width: 8, height: 8, borderRadius: 4, backgroundColor: WMS.teal },
+  headerTitle:{ fontSize: 20, fontWeight: '600', color: '#ede9e3' },
+  headerSub:  { fontSize: 12, color: WMS.muted, marginLeft: 'auto' },
+  actRow:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: WMS.border },
+  actCodigo: { fontSize: 13, fontWeight: '600', color: '#ede9e3' },
+  actDesc:   { fontSize: 12, color: WMS.muted, flex: 1 },
+  typeVal:   { fontSize: 28, fontWeight: '600' },
+  typeLabel: { fontSize: 12, color: WMS.muted, marginTop: 2 },
 });
